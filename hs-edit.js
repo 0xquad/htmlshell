@@ -1,4 +1,5 @@
 var selectCodeOn = true,
+ /* these are not used anymore; they have been externalized to templates/*.html */
  htmlMTContent = "&lt;html&gt;<br>",
  htmlIEContent = "&lt;!--[if lte IE 6]&gt;&lt;html class=\"preIE7 preIE8 preIE9\"&gt;&lt;![endif]--&gt;<br>&lt;!--[if IE 7]&gt;&lt;html class=\"preIE8 preIE9\"&gt;&lt;![endif]--&gt;<br>&lt;!--[if IE 8]&gt;&lt;html class=\"preIE9\"&gt;&lt;![endif]--&gt;<br>&lt;!--[if gte IE 9]&gt;&lt;!--&gt;&lt;html&gt;&lt;!--&lt;![endif]--&gt;<br>",
  xuaContent = "&nbsp;&nbsp;&lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge,chrome=1&quot;&gt;<br>",
@@ -25,11 +26,15 @@ $(function()
  $("#xua-radio-group").buttonset();
  $("#vp-radio-group").buttonset();
  $("#commonmetas-radio-group").buttonset();
+ $("#dcmetas-radio-group").buttonset();
+ $("#ogmetas-radio-group").buttonset();
  $("#favicon-radio-group").buttonset();
+ $("#appletouchicon-radio-group").buttonset();
  $("#googlewebfonts-radio-group").buttonset();
  $("#stylesheet-radio-group").buttonset();
  $("#analytics-radio-group").buttonset();
  $("#jquery-radio-group").buttonset();
+ $("#foundation-radio-group").buttonset();
  $("#angular-radio-group").buttonset();
  $("#dojo-radio-group").buttonset();
  $("#mootools-radio-group").buttonset();
@@ -65,10 +70,42 @@ function hideSpan(elementName)
  });
 }
 
+
+var allSnippets = {};
+
 function showSpan(elementName, elementContent)
 {
- $(elementName).html(elementContent);
- $(elementName).slideDown();
+ // Fetch the html snippet from the templates/ directory and cache it (in
+ // allSnippets). The template file is based on the div id, without the '#'
+ // selector. elementContent is not used anymore.
+
+ var tmplFile = elementName.replace(/^#/, '') + '.html';
+ $.when(
+  $.get({
+   url: 'templates/' + tmplFile,
+   success: function(data) {
+    allSnippets[elementName] = data;
+   },
+   fail: function(resp) {
+    console.error('error fetching html snippet file: ' + tmplFile + '; status: ' + resp.status);
+   },
+   beforeSend: function() {
+    // fetch only if not already in cache
+    return !(elementName in allSnippets);
+   },
+  })
+ ).always(function() { /* i.e. whether it fetched the snippet or it was already cached... */
+  if (elementName in allSnippets) { // make sure the snippet is present
+   $e = $(elementName);
+   $e.text(allSnippets[elementName]);
+   // do some processing on the snippet contents before showing it
+   $e[0].innerHTML = $e[0].innerHTML
+    .replace(/\n/g, '<br>')
+    .replace(/^\s/g, '&nbsp;')
+    .replace(/\{\{edit\s+(["'])(.*?)\1\s+(["'])(.*?)\3\s*\}\}/g, '<span class="edit" onclick="editText(\'$2\',this)">$4</span>');
+   $e.slideDown();
+  }
+ });
 }
 
 function editText(message, span)
